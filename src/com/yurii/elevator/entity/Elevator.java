@@ -113,6 +113,10 @@ public class Elevator {
         }
     }
     
+    public List<Passenger> getPassengers() {
+        return passengers;
+    }
+
     public void move() {
         if(this.currentDirection == Direction.UP) {
             if(this.currentFloor == this.topFloor || this.currentFloor == this.destinationFloor) {

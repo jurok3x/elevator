@@ -1,9 +1,11 @@
 package com.yurii.elevator.entity;
 
+import com.yurii.elevator.utils.ConsoleWriter;
+
 import java.util.LinkedList;
 import java.util.List;
 
-public class Building {
+public class Building implements Runnable{
     
     private static final Byte MAX_FLOORS = 20;
     private static final Byte MIN_FLOORS = 5;
@@ -11,11 +13,11 @@ public class Building {
     private static Building building;
     private List<Passenger> passengers;
     private Elevator elevator;
-    private Byte floorCount;
+    private int floorCount;
     
     private Building() {
         //get total floor number of the building
-        this.floorCount = (byte) Math.round((Math.random() * (MAX_FLOORS - MIN_FLOORS) + MIN_FLOORS));
+        this.floorCount = (int) Math.round((Math.random() * (MAX_FLOORS - MIN_FLOORS) + MIN_FLOORS));
         //adding passengers to each floor
         this.passengers = new LinkedList<>();
         for(int i=1;i<=floorCount;i++) {
@@ -36,21 +38,29 @@ public class Building {
         return building;
     }
     
-    public void runElevator() {
-        List<Passenger> removedPassangers = this.elevator.removePassengers();
-        if(removedPassangers != null) {
-            System.out.println(String.format("Removing passengers: %s, floor # %d", removedPassangers, this.elevator.getCurrentFloor()));
-            //adding removed passengers back to list with new destination floor
-            removedPassangers.stream().forEach(passenger -> passenger.setDestinationFloor(generateDestinationFloor(passenger.getDestinationFloor())));
-            this.passengers.addAll(removedPassangers);
+    public void run() {
+        ConsoleWriter writer = new ConsoleWriter(floorCount, this.passengers, elevator);
+        while(!Thread.currentThread().isInterrupted()) {
+            List<Passenger> removedPassangers = this.elevator.removePassengers();
+            if(removedPassangers != null) {
+                //adding removed passengers back to list with new destination floor
+                removedPassangers.stream().forEach(passenger -> passenger.setDestinationFloor(generateDestinationFloor(passenger.getDestinationFloor())));
+                this.passengers.addAll(removedPassangers);
+            }
+            if(!this.elevator.isFull()) {
+                List<Passenger> addedPassangers = this.elevator.addPassengers(this.passengers);
+                this.passengers.removeAll(addedPassangers);
+            }
+            writer.log();
+            System.out.printf("Moving to floor # %d%n", this.elevator.getCurrentFloor() + 1);
+            this.elevator.move();
+            try {
+                Thread.currentThread();
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-        if(!this.elevator.isFull()) {
-            List<Passenger> addedPassangers = this.elevator.addPassengers(this.passengers);
-            this.passengers.removeAll(addedPassangers);
-            System.out.println(String.format("Adding passengers: %s, floor # %d", addedPassangers, this.elevator.getCurrentFloor()));
-        }
-        this.elevator.move();
-        System.out.printf("Moving to flor # %d%n", this.elevator.getCurrentFloor());
     }
     
   //function to prevent equal current and destination floors for the passenger
